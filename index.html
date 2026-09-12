@@ -11,10 +11,8 @@
         body { background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .header-title { color: #2c3e50; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; }
         
-        /* SUBTITLU MAI MARE */
         .subtitle-custom { color: #5d6d7e; font-size: 1.15rem; font-weight: 500; }
         
-        /* STILIZARE LUNĂ ȘI SĂPTĂMÂNĂ GRI ANTRACIT ȘI MĂRIME EGALĂ */
         .date-box-text { color: #34495e !important; font-size: 1.25rem; font-weight: 700; }
 
         .card-day { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
@@ -63,7 +61,6 @@
         </h1>
         <p class="subtitle-custom mb-3">Rezervare locuri la standul mobil</p>
         
-        <!-- CASETA CU LUNA SI SAPTAMANA CULOARE GRI ANTRACIT SI MARIME ASAMANAOARE -->
         <div class="card p-3 shadow-sm border-0 mb-3 bg-white" style="max-width: 480px; margin: 0 auto;">
             <div class="date-box-text mb-1" id="displayedMonth">...</div>
             <div class="date-box-text" id="displayedWeek">...</div>
@@ -296,11 +293,23 @@
         return res;
     }
 
+    /* REGULĂ: Începând de Vineri de la ora 13:00 se fac programări pentru Săptămâna Viitoare */
     function autoCalculateTargetWeek() {
         const now = new Date();
         const currentMonday = getStartOfWeek(now);
+        
+        const currentDayIndex = now.getDay(); // 0 = Duminică, 1 = Luni, ..., 5 = Vineri, 6 = Sâmbătă
+        const currentHour = now.getHours();
+
         const targetMonday = new Date(currentMonday);
-        targetMonday.setDate(currentMonday.getDate() + 7);
+        
+        // Înainte de Vineri ora 13:00 -> Săptămâna curentă (+0 zile)
+        // De Vineri ora 13:00, Sâmbătă și Duminică -> Săptămâna viitoare (+7 zile)
+        if ((currentDayIndex === 5 && currentHour >= 13) || currentDayIndex === 6 || currentDayIndex === 0) {
+            targetMonday.setDate(currentMonday.getDate() + 7);
+        } else {
+            targetMonday.setDate(currentMonday.getDate());
+        }
 
         currentWeekId = `${targetMonday.getFullYear()}_${targetMonday.getMonth()}_${targetMonday.getDate()}`;
 
@@ -351,10 +360,6 @@
             isCurrentWeekBookingAllowed = false;
             alertBox.className = "alert alert-secondary d-flex align-items-center mb-4";
             document.getElementById('infoRule').innerText = "Această săptămână a trecut. Rezervările sunt închise.";
-        } else if (diffWeeks > 1) {
-            isCurrentWeekBookingAllowed = false;
-            alertBox.className = "alert alert-warning d-flex align-items-center mb-4";
-            document.getElementById('infoRule').innerText = "Voluntarii se pot programa doar cu maxim o săptămână în avans.";
         } else {
             isCurrentWeekBookingAllowed = true;
             alertBox.className = "alert alert-info d-flex align-items-center mb-4";
