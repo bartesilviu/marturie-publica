@@ -67,17 +67,29 @@
         </div>
     </div>
 
-    <div id="statusAlert" class="alert alert-info d-flex align-items-center mb-4" role="alert">
-        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
-        <div id="infoRule">Se conectează la server...</div>
-    </div>
-
     <div id="scheduleContainer"></div>
 
     <div class="text-center mt-5 pt-3 border-top">
         <button class="btn btn-sm btn-outline-secondary" onclick="openAdminModal()">
             <i class="bi bi-gear-fill me-1"></i> Panou Administrator
         </button>
+    </div>
+</div>
+
+<!-- MODAL POP-UP ANUNȚ / REGULĂ LA DESCHIDERE -->
+<div class="modal fade" id="infoNoticeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-info-circle-fill me-2"></i>Informație importantă</h5>
+            </div>
+            <div class="modal-body text-center p-4">
+                <p class="fs-6 text-dark mb-0" id="infoNoticeText">Se încarcă informațiile...</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-success px-5 fw-bold" data-bs-dismiss="modal">OK</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -234,16 +246,16 @@
     const MONTH_NAMES = ["Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie", "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie"];
     
     let config = {
-        unlockDay: 5,
-        unlockTime: '18:00',
+        unlockDay: 1, // Luni deblocare implicită
+        unlockTime: '08:00',
         daysConfig: {
-            'Luni': { location: 'Teaca', morningActive: true, morningStart: '08:00', morningEnd: '12:00', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00' },
-            'Marți': { location: 'Zona Decebal', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00' },
-            'Miercuri': { location: 'Zona Dalas', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00' },
-            'Joi': { location: 'Zona Decebal', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00' },
-            'Vineri': { location: 'Zona Dalas', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00' },
-            'Sâmbătă': { location: 'Decebal', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00' },
-            'Duminică': { location: 'Dalas', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00' }
+            'Luni': { location: 'Teaca', morningActive: true, morningStart: '08:00', morningEnd: '12:00', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 3 },
+            'Marți': { location: 'Zona Decebal', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 2 },
+            'Miercuri': { location: 'Zona Dalas', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 2 },
+            'Joi': { location: 'Zona Decebal', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 2 },
+            'Vineri': { location: 'Zona Dalas', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 2 },
+            'Sâmbătă': { location: 'Decebal', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 2 },
+            'Duminică': { location: 'Dalas', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 2 }
         }
     };
 
@@ -254,6 +266,7 @@
     let currentWeekId = "";
     let formattedWeekText = "";
     let isCurrentWeekBookingAllowed = true;
+    let hasShownNoticeModal = false;
 
     document.addEventListener('DOMContentLoaded', () => {
         initFirebaseRealtimeSync();
@@ -293,18 +306,15 @@
         return res;
     }
 
-    /* REGULĂ: Începând de Vineri de la ora 13:00 se fac programări pentru Săptămâna Viitoare */
     function autoCalculateTargetWeek() {
         const now = new Date();
         const currentMonday = getStartOfWeek(now);
         
-        const currentDayIndex = now.getDay(); // 0 = Duminică, 1 = Luni, ..., 5 = Vineri, 6 = Sâmbătă
+        const currentDayIndex = now.getDay();
         const currentHour = now.getHours();
 
         const targetMonday = new Date(currentMonday);
         
-        // Înainte de Vineri ora 13:00 -> Săptămâna curentă (+0 zile)
-        // De Vineri ora 13:00, Sâmbătă și Duminică -> Săptămâna viitoare (+7 zile)
         if ((currentDayIndex === 5 && currentHour >= 13) || currentDayIndex === 6 || currentDayIndex === 0) {
             targetMonday.setDate(currentMonday.getDate() + 7);
         } else {
@@ -354,22 +364,17 @@
         const diffTime = selectedMonday.getTime() - currentMonday.getTime();
         const diffWeeks = Math.round(diffTime / (7 * 24 * 3600 * 1000));
 
-        const alertBox = document.getElementById('statusAlert');
-
         if (diffWeeks < 0) {
             isCurrentWeekBookingAllowed = false;
-            alertBox.className = "alert alert-secondary d-flex align-items-center mb-4";
-            document.getElementById('infoRule').innerText = "Această săptămână a trecut. Rezervările sunt închise.";
         } else {
             isCurrentWeekBookingAllowed = true;
-            alertBox.className = "alert alert-info d-flex align-items-center mb-4";
             updateInfoText();
         }
     }
 
     function updateInfoText() {
         const dayNames = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
-        const targetDayIndex = parseInt(config.unlockDay);
+        const targetDayIndex = parseInt(config.unlockDay !== undefined ? config.unlockDay : 1);
         
         if (!currentWeekId) return;
 
@@ -383,10 +388,19 @@
         const dayName = dayNames[targetDayIndex];
         const dayNumber = String(targetDate.getDate()).padStart(2, '0');
         const monthName = MONTH_NAMES[targetDate.getMonth()];
-        const timeStr = config.unlockTime || '18:00';
+        const timeStr = config.unlockTime || '08:00';
         
-        document.getElementById('infoRule').innerText = 
-            `O persoană se poate programa o singură dată pe săptămână. A doua programare se poate face doar după ziua de ${dayName}, ${dayNumber} ${monthName} la ora ${timeStr}.`;
+        const message = `O persoană se poate programa o singură dată pe săptămână. În cazul în care nu s-au acoperit toate locurile se poate face o a doua programare după ziua de ${dayName}, ${dayNumber} ${monthName} la ora ${timeStr}.`;
+
+        document.getElementById('infoNoticeText').innerText = message;
+
+        if (!hasShownNoticeModal) {
+            hasShownNoticeModal = true;
+            setTimeout(() => {
+                const noticeModal = new bootstrap.Modal(document.getElementById('infoNoticeModal'));
+                noticeModal.show();
+            }, 300);
+        }
     }
 
     function ensureWeekStructure(weekId) {
@@ -403,10 +417,13 @@
     }
 
     function getDayConfig(day) {
+        let defaultCap = (day === 'Luni') ? 3 : 2;
         if (!config.daysConfig || !config.daysConfig[day]) {
-            return { location: '', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00' };
+            return { location: '', morningActive: true, morningStart: '10:30', morningEnd: '12:30', afternoonActive: true, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: defaultCap };
         }
-        return config.daysConfig[day];
+        let cfg = config.daysConfig[day];
+        if (!cfg.capacity) cfg.capacity = defaultCap;
+        return cfg;
     }
 
     function renderSchedule() {
@@ -433,7 +450,7 @@
                             <span class="badge badge-time">${dayCfg.morningStart} - ${dayCfg.morningEnd}</span>
                         </div>
                         <div class="row g-2">
-                            ${renderSlots(day, 'morning', morningList)}
+                            ${renderSlots(day, 'morning', morningList, dayCfg.capacity)}
                         </div>
                     </div>`;
             }
@@ -446,7 +463,7 @@
                             <span class="badge badge-time">${dayCfg.afternoonStart} - ${dayCfg.afternoonEnd}</span>
                         </div>
                         <div class="row g-2">
-                            ${renderSlots(day, 'afternoon', afternoonList)}
+                            ${renderSlots(day, 'afternoon', afternoonList, dayCfg.capacity)}
                         </div>
                     </div>`;
             }
@@ -479,35 +496,37 @@
         return now < deadline;
     }
 
-    function renderSlots(day, shift, list) {
+    function renderSlots(day, shift, list, capacity) {
         let html = '';
         const weekMyBookings = myActiveBookings[currentWeekId] || {};
         const activeKey = `${day}_${shift}`;
         const canEditNow = isEditAllowedForCurrentWeek();
 
-        for (let i = 0; i < 2; i++) {
+        let colClass = capacity === 3 ? "col-4" : "col-6";
+
+        for (let i = 0; i < capacity; i++) {
             if (list[i]) {
                 const isMyCurrentBooking = (weekMyBookings[activeKey] === i && canEditNow);
                 
                 if (isMyCurrentBooking) {
                     html += `
-                        <div class="col-6">
-                            <div class="slot-box slot-filled d-flex justify-content-between align-items-center">
+                        <div class="${colClass}">
+                            <div class="slot-box slot-filled d-flex justify-content-between align-items-center px-2">
                                 <span class="fw-semibold text-truncate" title="${list[i]}"><i class="bi bi-person-check-fill text-success me-1"></i>${list[i]}</span>
                                 <button class="btn btn-delete-my ms-1" onclick="deleteMyBooking('${day}', '${shift}', ${i})" title="Șterge / Modifică rezervarea ta"><i class="bi bi-trash-fill fs-6"></i></button>
                             </div>
                         </div>`;
                 } else {
                     html += `
-                        <div class="col-6">
-                            <div class="slot-box slot-filled d-flex justify-content-between align-items-center">
+                        <div class="${colClass}">
+                            <div class="slot-box slot-filled d-flex justify-content-between align-items-center px-2">
                                 <span class="fw-semibold text-truncate" title="${list[i]}"><i class="bi bi-person-check-fill text-success me-1"></i>${list[i]}</span>
                             </div>
                         </div>`;
                 }
             } else {
                 html += `
-                    <div class="col-6">
+                    <div class="${colClass}">
                         <div class="slot-box text-center">
                             <button class="btn btn-sm btn-custom w-100" ${!isCurrentWeekBookingAllowed ? 'disabled' : ''} onclick="openSignupModal('${day}', '${shift}')">
                                 <i class="bi bi-plus-circle me-1"></i> Înscrie-te
@@ -555,13 +574,13 @@
     function isDoubleBookingAllowedForSelectedWeek() {
         const parts = currentWeekId.split('_').map(Number);
         const mondayOfSelectedWeek = new Date(parts[0], parts[1], parts[2]);
-        const targetDayIndex = parseInt(config.unlockDay);
+        const targetDayIndex = parseInt(config.unlockDay !== undefined ? config.unlockDay : 1);
         
         let daysToAdd = targetDayIndex === 0 ? 6 : targetDayIndex - 1;
         const unlockDate = new Date(mondayOfSelectedWeek);
         unlockDate.setDate(mondayOfSelectedWeek.getDate() + daysToAdd);
         
-        const [hours, minutes] = config.unlockTime.split(':').map(Number);
+        const [hours, minutes] = (config.unlockTime || '08:00').split(':').map(Number);
         unlockDate.setHours(hours, minutes, 0, 0);
 
         const now = new Date();
@@ -681,8 +700,8 @@
             document.getElementById('adminAuthSection').classList.add('d-none');
             document.getElementById('adminControlsSection').classList.remove('d-none');
             
-            document.getElementById('adminUnlockDay').value = config.unlockDay;
-            document.getElementById('adminUnlockTime').value = config.unlockTime;
+            document.getElementById('adminUnlockDay').value = config.unlockDay !== undefined ? config.unlockDay : 1;
+            document.getElementById('adminUnlockTime').value = config.unlockTime || '08:00';
 
             renderAdminDaysConfig();
             renderAdminTableExport();
@@ -737,6 +756,7 @@
             const dayCfg = getDayConfig(day);
             const morningList = bookings[currentWeekId][day].morning || [];
             const afternoonList = bookings[currentWeekId][day].afternoon || [];
+            const capacity = dayCfg.capacity || 2;
 
             let activeShiftsCount = (dayCfg.morningActive ? 1 : 0) + (dayCfg.afternoonActive ? 1 : 0);
             if (activeShiftsCount === 0) activeShiftsCount = 1;
@@ -748,7 +768,7 @@
 
             if (dayCfg.morningActive) {
                 let morningBoxes = '';
-                for (let i = 0; i < 2; i++) {
+                for (let i = 0; i < capacity; i++) {
                     if (morningList[i]) {
                         morningBoxes += `<div class="export-name-box">${morningList[i]}</div>`;
                     } else {
@@ -768,7 +788,7 @@
 
             if (dayCfg.afternoonActive) {
                 let afternoonBoxes = '';
-                for (let i = 0; i < 2; i++) {
+                for (let i = 0; i < capacity; i++) {
                     if (afternoonList[i]) {
                         afternoonBoxes += `<div class="export-name-box">${afternoonList[i]}</div>`;
                     } else {
@@ -808,6 +828,7 @@
 
         DAYS.forEach(day => {
             const dayCfg = getDayConfig(day);
+            const capacity = dayCfg.capacity || 2;
             const card = document.createElement('div');
             card.className = 'card mb-3 border-secondary';
 
@@ -820,10 +841,10 @@
                     const list = bookings[currentWeekId][day][shift] || [];
 
                     let slotsHtml = '';
-                    for (let i = 0; i < 2; i++) {
+                    for (let i = 0; i < capacity; i++) {
                         const val = list[i] || '';
                         slotsHtml += `
-                            <div class="col-md-6 mb-2">
+                            <div class="col-md-4 col-6 mb-2">
                                 <div class="input-group input-group-sm">
                                     <span class="input-group-text">Loc ${i+1}</span>
                                     <input type="text" class="form-control" id="edit_${day}_${shift}_${i}" value="${val}" placeholder="Liber">
@@ -862,9 +883,11 @@
     function saveAdminEditedBookings() {
         ensureWeekStructure(currentWeekId);
         DAYS.forEach(day => {
+            const dayCfg = getDayConfig(day);
+            const capacity = dayCfg.capacity || 2;
             ['morning', 'afternoon'].forEach(shift => {
                 bookings[currentWeekId][day][shift] = [];
-                for (let i = 0; i < 2; i++) {
+                for (let i = 0; i < capacity; i++) {
                     const input = document.getElementById(`edit_${day}_${shift}_${i}`);
                     if (input && input.value.trim()) {
                         bookings[currentWeekId][day][shift].push(input.value.trim());
@@ -891,8 +914,14 @@
                     <div class="col-md-3">
                         <label class="form-label small fw-bold mb-0">Locație Stand:</label>
                     </div>
-                    <div class="col-md-9">
+                    <div class="col-md-5">
                         <input type="text" class="form-control form-control-sm" id="loc_${day}" value="${dayCfg.location}" placeholder="Ex: Decebal">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">Locuri/tură</span>
+                            <input type="number" class="form-control" id="cap_${day}" value="${dayCfg.capacity || 2}" min="1" max="5">
+                        </div>
                     </div>
                 </div>
                 <div class="row g-2 align-items-center mb-2 bg-white p-2 rounded border">
@@ -934,6 +963,7 @@
 
         DAYS.forEach(day => {
             const loc = document.getElementById(`loc_${day}`).value.trim();
+            const cap = parseInt(document.getElementById(`cap_${day}`).value) || 2;
             const mActive = document.getElementById(`mornActive_${day}`).checked;
             const mStart = document.getElementById(`mornStart_${day}`).value;
             const mEnd = document.getElementById(`mornEnd_${day}`).value;
@@ -944,6 +974,7 @@
 
             config.daysConfig[day] = {
                 location: loc,
+                capacity: cap,
                 morningActive: mActive, morningStart: mStart, morningEnd: mEnd,
                 afternoonActive: aActive, afternoonStart: aStart, afternoonEnd: aEnd
             };
