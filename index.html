@@ -17,6 +17,10 @@
 
         .card-day { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .card-day-header { background-color: #34495e; color: white; border-top-left-radius: 12px; border-top-right-radius: 12px; font-weight: 600; }
+        
+        /* STIL HEADER POP-UP ÎN TEMA PAGINII (GRI ANTRACIT) */
+        .modal-header-custom { background-color: #34495e; color: white; border-top-left-radius: var(--bs-modal-inner-border-radius); border-top-right-radius: var(--bs-modal-inner-border-radius); }
+
         .slot-box { border: 2px dashed #bdc3c7; border-radius: 8px; padding: 10px; background-color: #fff; margin-bottom: 8px; transition: all 0.2s; }
         .slot-filled { border: 1.5px solid #2ecc71; background-color: #e8f8f5; }
         .btn-custom { background-color: #27ae60; color: white; border-radius: 20px; font-weight: 500; }
@@ -76,10 +80,11 @@
     </div>
 </div>
 
+<!-- MODAL POP-UP ANUNȚ / REGULĂ LA DESCHIDERE CU CULOAREA TAMEI (#34495e) -->
 <div class="modal fade" id="infoNoticeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header modal-header-custom">
                 <h5 class="modal-title"><i class="bi bi-info-circle-fill me-2"></i>Informație importantă</h5>
             </div>
             <div class="modal-body text-center p-4">
@@ -389,7 +394,8 @@
         const monthName = MONTH_NAMES[targetDate.getMonth()];
         const timeStr = config.unlockTime || '08:00';
         
-        const message = `O persoană se poate programa o singură dată pe săptămână. În cazul în care nu s-au acoperit toate locurile se poate face o a doua programare după ziua de ${dayName}, ${dayNumber} ${monthName} la ora ${timeStr}.`;
+        // NOUL MESAJ SOLICITAT
+        const message = `O persoană se poate programa o singură dată pe săptămână. În cazul în care nu s-au acoperit toate locurile, se poate face o a doua programare ${dayName}, ${dayNumber} ${monthName}, începând cu ora ${timeStr}.`;
 
         document.getElementById('infoNoticeText').innerText = message;
 
@@ -501,7 +507,6 @@
         const activeKey = `${day}_${shift}`;
         const canEditNow = isEditAllowedForCurrentWeek();
 
-        // Responsive grid: col-12 pe telefoane inguste, col-sm-6 pe tablete, col-lg-4/col-md-6 pe desktop
         let colClass = capacity === 3 ? "col-12 col-sm-6 col-lg-4" : "col-12 col-md-6";
 
         for (let i = 0; i < capacity; i++) {
