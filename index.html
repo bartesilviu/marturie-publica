@@ -76,7 +76,6 @@
     </div>
 </div>
 
-<!-- MODAL POP-UP ANUNȚ / REGULĂ LA DESCHIDERE -->
 <div class="modal fade" id="infoNoticeModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -246,7 +245,7 @@
     const MONTH_NAMES = ["Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie", "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie"];
     
     let config = {
-        unlockDay: 1, // Luni deblocare implicită
+        unlockDay: 1,
         unlockTime: '08:00',
         daysConfig: {
             'Luni': { location: 'Teaca', morningActive: true, morningStart: '08:00', morningEnd: '12:00', afternoonActive: false, afternoonStart: '17:00', afternoonEnd: '19:00', capacity: 3 },
@@ -502,7 +501,8 @@
         const activeKey = `${day}_${shift}`;
         const canEditNow = isEditAllowedForCurrentWeek();
 
-        let colClass = capacity === 3 ? "col-4" : "col-6";
+        // Responsive grid: col-12 pe telefoane inguste, col-sm-6 pe tablete, col-lg-4/col-md-6 pe desktop
+        let colClass = capacity === 3 ? "col-12 col-sm-6 col-lg-4" : "col-12 col-md-6";
 
         for (let i = 0; i < capacity; i++) {
             if (list[i]) {
